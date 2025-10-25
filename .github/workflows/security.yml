@@ -1,0 +1,31 @@
+name: Security checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  security:
+    name: Audit & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies (legacy-peer-deps)
+        run: |
+          npm ci --silent --no-audit --legacy-peer-deps
+
+      - name: Run npm audit (moderate+) with GHSA-9965 ignored
+        run: |
+          node ./scripts/audit-ci-filter.js
+
+      - name: Run ESLint (CI)
+        run: npm run lint:ci

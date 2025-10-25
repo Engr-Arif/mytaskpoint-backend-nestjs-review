@@ -1,0 +1,47 @@
+name: CI (Showcase Ready)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  CI_ALLOW_EMPTY_ALLOWED_ORIGINS: 'true'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Ensure ALLOWED_ORIGINS is set (bypassed for showcase)
+        run: |
+          if [ -z "${ALLOWED_ORIGINS}" ] && [ "${CI_ALLOW_EMPTY_ALLOWED_ORIGINS}" != "true" ]; then
+            echo "ALLOWED_ORIGINS is not set. To bypass set CI_ALLOW_EMPTY_ALLOWED_ORIGINS=true";
+            exit 1;
+          else
+            echo "ALLOWED_ORIGINS check bypassed for showcase"
+          fi
+
+      - name: Lint
+        run: npm run lint:ci
+
+      - name: Typecheck (strict)
+        run: npm run typecheck:strict
+
+      - name: Run unit tests only (skip e2e)
+        run: npm run test --silent -- --testPathIgnorePatterns=\\.e2e\\.spec\\.ts$

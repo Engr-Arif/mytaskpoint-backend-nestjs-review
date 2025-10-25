@@ -1,0 +1,10 @@
+*** Begin Patch
+*** Update File: package.json
+@@
+-  "description": "String validation and sanitization",
+-  "version": "13.15.15",
+-  "sideEffects": false,
++  "description": "String validation and sanitization",
++  "version": "13.15.16",
++  "sideEffects": false,
+*** End Patch

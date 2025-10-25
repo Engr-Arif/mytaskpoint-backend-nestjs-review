@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id                     String                  @id @default(uuid())
+  publicId               Int                     @unique @default(autoincrement())
+  email                  String                  @unique
+  passwordHash           String
+  fullName               String
+  role                   Role                    @default(WORKER)
+  territory              String?
+  refreshTokenHash       String?
+  district               String?
+  policeStation          String?
+  area                   String?
+  lat                    Float?
+  lon                    Float?
+  active                 Boolean                 @default(false)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  phone                  String?
+  callReports            CallReport[]
+  locationChangeRequests LocationChangeRequest[]
+  locationVisits         LocationVisit[]
+  tasks                  Task[]                  @relation("UserTasks")
+  rejections             TaskRejection[]
+  passwordResets         PasswordReset[]
+}
+
+model Task {
+  id                String          @id @default(cuid())
+  title             String
+  address           String
+  lat               Float?
+  lon               Float?
+  status            TaskStatus      @default(unassigned)
+  geocodePending    Boolean         @default(true)
+  errorLog          String?
+  transactionNumber String?
+  requisitionDate   String?
+  requisitionTime   String?
+  customerName      String?
+  phone             String?
+  city              String?
+  area              String?
+  thana             String?
+  orderStatus       String?
+  lastStatusUpdate  String?
+  productType       String?
+  productName       String?
+  unitPriceExVat    Float?
+  unitPriceIncVat   Float?
+  productCode       String?
+  qty               Int?
+  mrp               Float?
+  invoiceAmount     Float?
+  paymentMode       String?
+  deliveryPartner   String?
+  assignedUserId    String?
+  territory          String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  assignedAt        DateTime?
+  callReports       CallReport[]
+  locationVisits    LocationVisit[]
+  assignedUser      User?           @relation("UserTasks", fields: [assignedUserId], references: [id])
+  otps              TaskOtp[]
+  rejections        TaskRejection[]
+}
+
+model TaskRejection {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  reason    String
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model CallReport {
+  id                  String              @id @default(cuid())
+  taskId              String
+  callerId            String
+  callerRole          Role
+  callStartTime       DateTime
+  callEndTime         DateTime
+  callResult          CallResult
+  deliveryPossibility DeliveryPossibility
+  status              CallStatus          @default(ACTIVE)
+  notes               String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  caller              User                @relation(fields: [callerId], references: [id])
+  task                Task                @relation(fields: [taskId], references: [id])
+
+  @@index([taskId])
+  @@index([callerId])
+  @@index([status])
+  @@index([callStartTime])
+  @@index([callResult])
+  @@index([deliveryPossibility])
+  @@index([callerRole])
+  @@index([createdAt])
+}
+
+model TaskOtp {
+  id        String   @id @default(cuid())
+  taskId    String
+  otp       String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id])
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  email     String
+  phone     String
+  otp       String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LocationChangeRequest {
+  id         String                @id @default(cuid())
+  userId     String
+  lat        Float
+  lon        Float
+  status     LocationRequestStatus @default(PENDING)
+  reason     String?
+  approvedBy String?
+  createdAt  DateTime              @default(now())
+  user       User                  @relation(fields: [userId], references: [id])
+}
+
+model LocationVisit {
+  id        String   @id @default(cuid())
+  userId    String
+  taskId    String?
+  lat       Float
+  lon       Float
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  task      Task?    @relation(fields: [taskId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  TERRITORY_OFFICER
+  WORKER
+}
+
+enum CallResult {
+  PHONE_OFF
+  USER_BUSY
+  RECEIVED
+}
+
+enum DeliveryPossibility {
+  POSSIBLE
+  NOT_POSSIBLE
+}
+
+enum TaskStatus {
+  unassigned
+  assigned
+  accepted
+  rejected
+  completed
+}
+
+enum LocationRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CallStatus {
+  DISMISS
+  ACTIVE
+}
